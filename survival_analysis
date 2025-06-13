@@ -1,0 +1,180 @@
+### In this code below we performed a survivala analysis, still using the final_table dataset.
+teste <- survival::survfit(Surv(tempo_1_360, recorreu_365) ~ hepatite,
+                            data = banco)
+
+plot360 <- ggsurvplot(
+  teste,
+  conf.int = TRUE,
+  pval = "p < 0.001",
+  pval.coord = c(10, 0.75),
+  break.time.by = 60,
+  xlab = "Tempo (dias)",
+  ylab = "Probabilidade de sobrevivência",
+  legend.title = "Hepatites",
+  legend.labs = c("Não", "Sim"),
+  risk.table = "abs_pct",
+  risk.table.title = "Risco - n (%)",
+  risk.table.fontsize = 3,
+  risk.table.y.text = FALSE,
+  ggtheme = theme_classic(),
+  font.x = 10,
+  font.y = 10,
+  font.legend = 10,
+  font.title = 12,
+  title = "Tempo até a recorrência em 360 dias",
+  ylim = c(0.7, 1)
+)
+
+
+### The Cox regression for the analysis 
+res.cox <- coxph(Surv(tempo_1_360, recorreu_365) ~ hepatite + SEXO.2  + idade + CS_ZONA,
+                  data = banco)
+
+
+tabela_formatada2 <- tidy(res.cox, exponentiate = TRUE) %>%
+  select(term, estimate, std.error, p.value) %>%
+  mutate(estimate = round(estimate, 2),  # Arredondar Hazard Ratio
+         std.error = round(std.error, 3),
+         p.value = ifelse(p.value < 0.001, "<0,001", round(p.value, 4))) %>%
+  rename(Variável = term,
+         Hazard Ratio = estimate,
+         Erro Padrão = std.error,
+         Valor de p = p.value) %>%
+  gt() %>%
+  tab_header(
+    title = "Resultados da Regressão de Cox",
+    subtitle = "Análise de Sobrevivência"
+  )
+
+
+
+##### Below we have the survival analysis for the hepatic virus separeted and th cox regressions 
+
+## Creating a data set for the hepatitis type.
+hepb <- banco %>%
+  select(idade, SEXO.2, CS_ZONA, hepatite, CLASSI_FIN, CLAS_ETIOL, recorreu_365, tempo_1_360) %>%
+  filter(CLAS_ETIOL == 2 | hepatite == 0) %>%
+  mutate(CLAS_ETIOL = if_else(CLAS_ETIOL %in% c(1, 9, 99), NA_real_, as.numeric(CLAS_ETIOL))) %>% 
+  select(idade, SEXO.2, CS_ZONA, hepatite, recorreu_365, tempo_1_360)
+
+
+hepc <- banco %>%
+  select(idade, SEXO.2, CS_ZONA, hepatite, CLASSI_FIN, CLAS_ETIOL, recorreu_365,tempo_1_360) %>%
+  filter(CLAS_ETIOL == 3 | hepatite == 0) %>%
+  mutate(CLAS_ETIOL = if_else(CLAS_ETIOL %in% c(1, 2,9, 99), NA_real_, as.numeric(CLAS_ETIOL)))%>% 
+  select(idade, SEXO.2, CS_ZONA, hepatite, recorreu_365,tempo_1_360)
+
+
+hepd <- banco %>%
+  select(idade, SEXO.2, CS_ZONA, hepatite, CLASSI_FIN, CLAS_ETIOL, recorreu_365,tempo_1_360) %>%
+  filter(CLAS_ETIOL == 4 | hepatite == 0) %>%
+  mutate(CLAS_ETIOL = if_else(CLAS_ETIOL %in% c(1, 2, 9, 99), NA_real_, as.numeric(CLAS_ETIOL)))%>% 
+  select(idade, SEXO.2, CS_ZONA, hepatite, recorreu_365,tempo_1_360)
+
+### Survival analysis for each type  
+## Type B 
+teste_b <- survival::survfit(Surv(tempo_1_360, recorreu_365) ~ hepatite,
+                             data = hepb)
+
+ggsurvplot(
+  teste_b,
+  conf.int = TRUE,
+  pval = "p <0.001",
+  pval.coord = c(10, 0.75),
+  break.time.by = 60,
+  xlab = "Tempo (dias)",
+  ylab = "Probabilidade de sobrevivência",
+  legend.title = "Hepatites",
+  legend.labs = c("Não", "Sim"),
+  risk.table = "abs_pct",
+  risk.table.title = "Risco - n (%)",
+  risk.table.fontsize = 3,
+  risk.table.y.text = FALSE,
+  ggtheme = theme_classic(),
+  font.x = 10,
+  font.y = 10,
+  font.legend = 10,
+  font.title = 12,
+  title = "Tempo até recorrência em 360 dias",
+  subtitle = "Hepatite B",
+  ylim = c(0.7, 1)
+)
+
+## Type C 
+teste_c <- survival::survfit(Surv(tempo_1_360, recorreu_365) ~ hepatite,
+                             data = hepc)
+
+ggsurvplot(
+  teste_c,
+  conf.int = TRUE,
+  pval = TRUE,
+  pval.coord = c(10, 0.75),
+  break.time.by = 60,
+  xlab = "Tempo (dias)",
+  ylab = "Probabilidade de sobrevivência",
+  legend.title = "Hepatites",
+  legend.labs = c("Não", "Sim"),
+  risk.table = "abs_pct",
+  risk.table.title = "Risco - n (%)",
+  risk.table.fontsize = 3,
+  risk.table.y.text = FALSE,
+  ggtheme = theme_classic(),
+  font.x = 10,
+  font.y = 10,
+  font.legend = 10,
+  font.title = 12,
+  title = "Tempo até recorrência em 360 dias",
+  subtitle = "Hepatite C",
+  ylim = c(0.7, 1)
+)
+
+
+## Type D
+teste_d <- survival::survfit(Surv(tempo_1_360, recorreu_365) ~ hepatite,
+                             data = hepd)
+
+ggsurvplot(
+  teste_d,
+  conf.int = TRUE,
+  pval = TRUE,
+  pval.coord = c(10, 0.75),
+  break.time.by = 60,
+  xlab = "Tempo (dias)",
+  ylab = "Probabilidade de sobrevivência",
+  legend.title = "Hepatites",
+  legend.labs = c("Não", "Sim"),
+  risk.table = "abs_pct",
+  risk.table.title = "Risco - n (%)",
+  risk.table.fontsize = 3,
+  risk.table.y.text = FALSE,
+  ggtheme = theme_classic(),
+  font.x = 10,
+  font.y = 10,
+  font.legend = 10,
+  font.title = 12,
+  title = "Tempo até recorrência em 360 dias",
+  subtitle = "Hepatite D",
+  ylim = c(0.7, 1)
+)
+
+### Cox regression for each hepatitis 
+## Type B 
+ res.cox1 <- coxph(Surv(tempo_1_360, recorreu_365) ~ hepatite + SEXO.2  + idade + CS_ZONA,
+                   data = hepb)
+ 
+ tab_model(res.cox1)
+
+
+## Type C 
+ res.cox2 <- coxph(Surv(tempo_1_360, recorreu_365) ~ hepatite + SEXO.2  + idade + CS_ZONA,
+                   data = hepc)
+ 
+ 
+ tab_model(res.cox2)
+
+## Type D 
+ res.cox3 <- coxph(Surv(tempo_1_360, recorreu_365) ~ hepatite + SEXO.2  + idade + CS_ZONA,
+                   data = hepd)
+ 
+ 
+ tab_model(res.cox3)
