@@ -1,0 +1,141 @@
+# The code below was used to construct the sociodemographic table in R, using the final_table dataset
+
+
+banco <- banco %>%
+  mutate(hepatite = case_when(
+    CLASSI_FIN %in% c(1, 2) ~ 1,
+    CLASSI_FIN %in% c(3, 4) ~ 0,
+    TRUE ~ NA_real_  
+  ))
+
+tabela<- banco %>% select(idade,SEXO.2,RACA, NIV_ESCOLA, COD_OCUP, CS_ZONA, hepatite, CLAS_ETIOL, FORMA, recorreu_90, recorreu_180, recorreu_365)
+
+
+
+tabela$SEXO.2 <- str_replace(tabela$SEXO.2, "F", "0")
+tabela$SEXO.2 <- str_replace(tabela$SEXO.2, "M", "1")
+
+tabela$SEXO.2 <- factor(tabela$SEXO.2,
+                        levels = c(0,1),
+                        labels = c("Female", "Male"))
+
+
+
+tabela$RACA <- factor(tabela$RACA,
+                      levels = c(1,2,3,4,5),
+                      labels = c("White","Black","Yellow","Mixed","Indigenous"))
+
+
+tabela$NIV_ESCOLA <- factor(tabela$NIV_ESCOLA)
+tabela$NIV_ESCOLA <- str_replace(tabela$NIV_ESCOLA, "10",NA_character_)
+
+tabela$NIV_ESCOLA <- factor(tabela$NIV_ESCOLA,
+                            levels = c(0,1,2,3,4,5,6,7,8),
+                            labels = c("Illiterate", "1st to 4th grade incomplete",
+                                       "4th grade complete", "5th to 8th grade incomplete",
+                                       "Elementary school complete", "High school incomplete",
+                                       "High school complete", "Higher education incomplete",
+                                       "Higher education complete"))
+
+
+
+tabela$COD_OCUP <- factor(tabela$COD_OCUP)
+tabela$COD_OCUP <- str_replace(tabela$COD_OCUP, "99",NA_character_)
+
+tabela$COD_OCUP <- factor(tabela$COD_OCUP,
+                          levels = c(1,2,3,4,5,6,7,8,10,11),
+                          labels = c("Agriculture", "Livestock", "Domestic work", "Tourism",
+                                     "Mining", "Vegetation exploitation", "Hunting/Fishing",
+                                     " Road/Dam construction","Traveler", "Other"))
+
+
+tabela$hepatite <- factor(tabela$hepatite,
+                          levels = c(0,1),
+                          labels = c("No", "Yes"))
+
+
+
+tabela$CLAS_ETIOL <- str_replace(tabela$CLAS_ETIOL, "9",NA_character_)
+tabela$CLAS_ETIOL <- str_replace(tabela$CLAS_ETIOL, "99",NA_character_)
+tabela$CLAS_ETIOL <- str_replace(tabela$CLAS_ETIOL, "1",NA_character_)
+
+tabela$CLAS_ETIOL <- factor(tabela$CLAS_ETIOL,
+                            levels = c("2","3","4"),
+                            labels = c("Virus B","Virus C","Virus B and D"))
+
+
+
+tabela$FORMA <- factor(tabela$FORMA,
+                       levels = c(1,2),
+                       labels = c("Acute", "Chronic"))
+
+
+tabela$recorreu_90 <- factor(tabela$recorreu_90,
+                              levels = c(0,1),
+                              labels = c("No", "Yes"))
+
+tabela$recorreu_180 <- factor(tabela$recorreu_180,
+                             levels = c(0,1),
+                             labels = c("No", "Yes"))
+
+tabela$recorreu_365 <- factor(tabela$recorreu_365,
+                              levels = c(0,1),
+                              labels = c("No", "Yes"))
+
+
+
+
+tabela$CS_ZONA <- as.factor(tabela$CS_ZONA)
+
+tabela$CS_ZONA <- str_replace(tabela$CS_ZONA, "9", NA_character_)
+
+
+tabela <- tabela %>%
+  mutate(CS_ZONA = case_when(
+    CS_ZONA == "3" ~ "2",  
+    TRUE ~ CS_ZONA    
+  ))
+
+tabela$CS_ZONA <- factor(tabela$CS_ZONA,
+                              levels = c(1,2),
+                              labels = c("Urban", "Rural"))
+
+
+
+
+
+label_list <-list(idade = "Age",
+                  SEXO.2 = "Sex",
+                  RACA = "Race",
+                  NIV_ESCOLA = "Education level",
+                  COD_OCUP = "Occupation ",
+                  CS_ZONA = "Zone",
+                  hepatite = "Hepatitis",
+                  CLAS_ETIOL = "Etiologic classification",
+                  FORMA = "Form", 
+                  recorreu_90 = "Recurrence in 90 days",
+                  recorreu_180 = "Recurrence in 180 days",
+                  recorreu_365 = "Recurrence in 360 days")
+
+
+
+tabela_socio <- tabela %>% tbl_summary(missing = 'no', label = label_list) %>% 
+  modify_caption("*Table 1. Sociodemographic information*") %>% 
+  modify_header(label ~ "*Variables*") %>% bold_labels()
+
+
+
+tabela_socio %>% as_flex_table() %>% save_as_docx(path = "tabela_socio_ingles.docx")
+
+
+#tabela com tempo de 365
+tabela3 <- tabela %>% select(recorreu_365, idade, SEXO.2,  CS_ZONA, hepatite, CLAS_ETIOL) %>% 
+  tbl_summary(by = recorreu_365, missing = 'no', label = label_list) %>%
+  modify_header(label ~ "*Variables*") %>% 
+  modify_spanning_header(c("stat_1", "stat_2") ~ "*Recurrence*") %>% 
+  modify_caption("*Table 4. Recurrence in 360 days*") %>% 
+  bold_labels() %>% add_overall(col_label = "*Total*") %>% 
+  add_p(test = all_categorical() ~ "fisher.test", test.args = all_categorical() ~ list(workspace = 2e7)) %>% bold_p()
+
+
+tabela3 %>% as_flex_table() %>% save_as_docx(path = "tabela365_inglês.docx")
